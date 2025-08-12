@@ -1,0 +1,35 @@
+From 9ce1edd539a3310d5a1a527facbf2838c3d72fa1 Mon Sep 17 00:00:00 2001
+From: Bones <babblebones@protnmail.com>
+Date: Tue, 12 Aug 2025 14:35:54 -0400
+Subject: [PATCH] winegstreamer: Ignore closed caption streams.
+
+---
+ dlls/winegstreamer/wg_parser.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 1294ba59081..571b025dace 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1309,6 +1309,7 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+ {
+     struct wg_parser_stream *stream;
+     struct wg_parser *parser = user;
++    const GstStructure *structure;
+     GstCaps *caps;
+ 
+     GST_LOG("parser %p, element %p, pad %p.", parser, element, pad);
+@@ -1326,6 +1327,10 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+     if (gst_caps_is_any(caps = gst_pad_query_caps(pad, NULL)))
+         caps = gst_pad_get_current_caps(pad);
+ 
++    structure = gst_caps_get_structure(caps, 0);
++    if (!strncmp(gst_structure_get_name(structure), "text/", 5))
++        return;
++
+     if (!(stream = create_stream(parser)))
+         return;
+     stream->codec_caps = caps;
+-- 
+2.50.1
+

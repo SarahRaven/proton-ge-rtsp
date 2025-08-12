@@ -1,0 +1,22 @@
+From eff1d3503cee12c8d58b01d72dc88aa31560de7b Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 10 Apr 2024 18:57:59 +0200
+Subject: [PATCH 05/53] === AVPro Video seeking support ===
+
+Rebased for wine-ge
+---
+ MAINTAINERS | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 11c9c6bc2bc..30f1d25123a 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -434,3 +434,5 @@ P:	Zebediah Figura <z.figura12@gmail.com>
+ P:	Paul Gofman <gofmanp@gmail.com>
+ P:	Erich E. Hoover <erich.e.hoover@wine-staging.com>
+ W:	https://wine-staging.com/
++
++seek
+-- 
+2.47.1

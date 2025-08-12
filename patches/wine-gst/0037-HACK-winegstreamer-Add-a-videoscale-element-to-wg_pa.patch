@@ -1,0 +1,40 @@
+From 8cd771abb50984fdb6b4b196ace916f0658655a7 Mon Sep 17 00:00:00 2001
+From: Bones <babblebones@protnmail.com>
+Date: Tue, 12 Aug 2025 14:37:49 -0400
+Subject: [PATCH] [HACK] winegstreamer: Add a videoscale element to wg_parser
+ for raw video.
+
+---
+ dlls/winegstreamer/wg_parser.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 688bd3a7f68..82cc6954489 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1149,6 +1149,10 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+         if (!(element = create_element("gldownload", "base"))
+                 || !append_element(parser->container, element, &first, &last))
+             return false;
++        /* Input resolution may not match requested resolution. */
++        if (!(element = create_element("videoscale", "base"))
++                || !append_element(parser->container, element, &first, &last))
++            return false;
+ 
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             return false;
+@@ -1229,6 +1233,11 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+         /* Let GStreamer choose a default number of threads. */
+         gst_util_set_object_arg(G_OBJECT(element), "n-threads", "0");
+ 
++        /* Input resolution may not match requested resolution. */
++        if (!(element = create_element("videoscale", "base"))
++                || !append_element(parser->container, element, &first, &last))
++            return false;
++
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             return false;
+     }
+-- 
+2.50.1
+

@@ -1,0 +1,41 @@
+From fdde7ba5281cd25688bc5f69e421644cf3d6e5a1 Mon Sep 17 00:00:00 2001
+From: Bones <babblebones@protnmail.com>
+Date: Tue, 12 Aug 2025 13:47:05 -0400
+Subject: [PATCH] mf/session: Ensure that the command callback does not return
+ without clearing SESSION_FLAG_PENDING_COMMAND.
+
+---
+ dlls/mf/session.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 669783cac28..704e6bad981 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -2916,7 +2916,6 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+             break;
+         case SESSION_CMD_SET_TOPOLOGY:
+             session_set_topology(session, op->set_topology.flags, op->set_topology.topology);
+-            session_command_complete(session);
+             break;
+         case SESSION_CMD_START:
+             session_start(session, &op->start.time_format, &op->start.start_position);
+@@ -2939,12 +2938,14 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+             break;
+         case SESSION_CMD_SHUTDOWN:
+             session_clear_command_list(session);
+-            session_command_complete(session);
+             break;
+         default:
+             ;
+     }
+ 
++    if (session->presentation.flags & SESSION_FLAG_PENDING_COMMAND)
++        session_command_complete(session);
++
+     LeaveCriticalSection(&session->cs);
+ 
+     IUnknown_Release(&op->IUnknown_iface);
+-- 
+2.50.1
+

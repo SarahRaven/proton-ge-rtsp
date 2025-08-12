@@ -1,0 +1,43 @@
+From dc823e5b2afe423ab0adb040761986cd795c920c Mon Sep 17 00:00:00 2001
+From: Bones <babblebones@protnmail.com>
+Date: Tue, 12 Aug 2025 13:42:23 -0400
+Subject: [PATCH] winegstreamer: Handle Gstreamer pipeline flushes gracefully.
+
+---
+ dlls/winegstreamer/media_source.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index fd959226cc1..f2ba89d80cd 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -739,7 +739,7 @@ static HRESULT media_stream_send_sample(struct media_stream *stream, const struc
+ 
+     if (!wg_parser_stream_copy_buffer(stream->wg_stream, data, 0, wg_buffer->size))
+     {
+-        hr = S_FALSE;
++        hr = HRESULT_FROM_WIN32(ERROR_RETRY);
+         wg_parser_stream_release_buffer(stream->wg_stream);
+         IMFMediaBuffer_Unlock(buffer);
+         goto out;
+@@ -812,12 +812,16 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
+ {
+     struct media_source *source = impl_from_IMFMediaSource(stream->media_source);
+     struct wg_parser_buffer buffer;
++    HRESULT hr;
+ 
++retry:
+     TRACE("%p, %p\n", stream, token);
+ 
+     while (stream_get_buffer(stream, &buffer))
+     {
+-        HRESULT hr = media_stream_send_sample(stream, &buffer, token);
++        hr = media_stream_send_sample(stream, &buffer, token);
++        if (hr == HRESULT_FROM_WIN32(ERROR_RETRY))
++            goto retry;
+         if (hr != S_FALSE)
+             return hr;
+     }
+-- 
+2.50.1
+

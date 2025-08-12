@@ -1,0 +1,85 @@
+From c903eb72fd1d2f5cd94f1a8ff5ff05a74ed81c3e Mon Sep 17 00:00:00 2001
+From: Zhiyi Zhang <zzhang@codeweavers.com>
+Date: Tue, 1 Aug 2023 10:52:21 +0800
+Subject: [PATCH 01/53] mf: Add seeking support for IMFMediaSession::Start().
+
+Rebased for wine-ge
+---
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index f38ae7542c0..669783cac28 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -113,6 +113,7 @@ enum object_state
+     OBJ_STATE_STARTED,
+     OBJ_STATE_PAUSED,
+     OBJ_STATE_PREROLLED,
++    OBJ_STATE_SEEKING,
+     OBJ_STATE_INVALID,
+ };
+ 
+@@ -1135,6 +1136,23 @@ static void session_reset_transforms(struct media_session *session, BOOL drop)
+     }
+ }
+ 
++static void session_set_source_output_nodes_seeking(struct media_session *session)
++{
++    struct media_source *source;
++    struct topo_node *node;
++
++    LIST_FOR_EACH_ENTRY(source, &session->presentation.sources, struct media_source, entry)
++    {
++        source->state = OBJ_STATE_SEEKING;
++    }
++
++    LIST_FOR_EACH_ENTRY(node, &session->presentation.nodes, struct topo_node, entry)
++    {
++        if (node->type == MF_TOPOLOGY_SOURCESTREAM_NODE || node->type == MF_TOPOLOGY_OUTPUT_NODE)
++            node->state = OBJ_STATE_SEEKING;
++    }
++}
++
+ static void session_start(struct media_session *session, const GUID *time_format, const PROPVARIANT *start_position)
+ {
+     struct media_source *source;
+@@ -1160,6 +1178,20 @@ static void session_start(struct media_session *session, const GUID *time_format
+                     }
+                 }
+ 
++                if (session->state == SESSION_STATE_STARTED)
++                {
++                    struct topo_node *node;
++
++                    LIST_FOR_EACH_ENTRY(node, &session->presentation.nodes, struct topo_node, entry)
++                    {
++                        if (node->type == MF_TOPOLOGY_OUTPUT_NODE)
++                            IMFStreamSink_Flush(node->object.sink_stream);
++                        else if (node->type == MF_TOPOLOGY_TRANSFORM_NODE)
++                            IMFTransform_ProcessMessage(node->object.transform, MFT_MESSAGE_COMMAND_FLUSH, 0);
++                    }
++                    session_set_source_output_nodes_seeking(session);
++                }
++
+                 /* Stop sources */
+                 LIST_FOR_EACH_ENTRY(source, &session->presentation.sources, struct media_source, entry)
+                 {
+@@ -3291,6 +3323,18 @@ static void session_set_source_object_state(struct media_session *session, IUnkn
+     switch (event_type)
+     {
+         case MESourceSeeked:
++        case MEStreamSeeked:
++            if (object && session_get_source_node(session, object, &node) == S_OK)
++            {
++                struct media_source *source = NULL;
++                if (!(source = media_session_get_media_source(session, node->node_id)))
++                {
++                    FIXME("Source node %s not found.\n", debugstr_mf_guid(&node->node_id));
++                    break;
++                }
++                source->state = OBJ_STATE_STARTED;
++                break;
++            }
+         case MESourceStarted:
+         case MESourcePaused:
+         case MESourceStopped:
+ -- 
+ 2.47.1

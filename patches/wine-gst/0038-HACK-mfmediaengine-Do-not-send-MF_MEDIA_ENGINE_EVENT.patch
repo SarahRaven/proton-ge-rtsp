@@ -1,0 +1,44 @@
+From 28d9d852906f80b5d081ba41d0254145ef7916a7 Mon Sep 17 00:00:00 2001
+From: Bones <babblebones@protnmail.com>
+Date: Tue, 12 Aug 2025 14:38:21 -0400
+Subject: [PATCH] [HACK] mfmediaengine: Do not send MF_MEDIA_ENGINE_EVENT_ERROR
+ for VRChat.
+
+---
+ dlls/mfmediaengine/main.c | 20 +++++++++++++++-----
+ 1 file changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index 41b8eee690a..cff6bd364f1 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -1458,11 +1458,21 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+     }
+     else
+     {
+-        engine->network_state = MF_MEDIA_ENGINE_NETWORK_NO_SOURCE;
+-        engine->error_code = MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED;
+-        engine->extended_code = hr;
+-        IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_ERROR, engine->error_code,
+-                engine->extended_code);
++        static unsigned int once;
++        char sgi[64];
++
++        if (GetEnvironmentVariableA("SteamGameId", sgi, sizeof(sgi)) && !strcmp(sgi, "438100"))
++        {
++            if (!once++) FIXME("HACK: not sending MF_MEDIA_ENGINE_EVENT_ERROR event.\n");
++        }
++        else
++        {
++            engine->network_state = MF_MEDIA_ENGINE_NETWORK_NO_SOURCE;
++            engine->error_code = MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED;
++            engine->extended_code = hr;
++            IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_ERROR, engine->error_code,
++                    engine->extended_code);
++        }
+     }
+ 
+     LeaveCriticalSection(&engine->cs);
+-- 
+2.50.1
+

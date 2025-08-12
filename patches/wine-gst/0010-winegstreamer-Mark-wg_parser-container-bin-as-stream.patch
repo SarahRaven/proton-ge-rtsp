@@ -1,0 +1,27 @@
+From 9d46c498e7db6fdd6a820d1309ccbda265a4e62a Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 22 Apr 2024 11:43:45 +0200
+Subject: [PATCH 10/53] winegstreamer: Mark wg_parser container bin as
+ streams-aware.
+
+Mirroring wg_source.
+Rebased for wine-ge
+CW-Bug-Id: #21644
+---
+ dlls/winegstreamer/wg_parser.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 70ab1c8c539..9cf6c9f2e89 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1806,6 +1806,7 @@ static NTSTATUS wg_parser_connect(void *args)
+     }
+ 
+     parser->container = gst_bin_new(NULL);
++    GST_OBJECT_FLAG_SET(parser->container, GST_BIN_FLAG_STREAMS_AWARE);
+     gst_element_set_bus(parser->container, parser->bus);
+     if (parser->context)
+         gst_element_set_context(parser->container, parser->context);
+-- 
+2.47.1
